@@ -1,0 +1,129 @@
+version: '3.7'
+
+networks:
+  gerocuidado-apis-net:
+    driver: bridge  # Rede compartilhada entre todas as APIs
+
+services:
+  # API Usuario
+  gerocuidado-usuario-api:
+    build:
+      context: ./api-usuario
+      dockerfile: Dockerfile.prod
+    container_name: gerocuidado-usuario-api
+    volumes:
+      - './api-usuario:/home/node/app'
+    entrypoint: /home/node/app/.docker/entrypoint.sh
+    environment:
+      - NODE_ENV=development
+    ports:
+      - '3001:3001'
+    depends_on:
+      - gerocuidado-usuario-db
+    networks:
+      - gerocuidado-apis-net
+
+  gerocuidado-usuario-db:
+    build:
+      context: ./api-usuario/.docker/postgres
+      dockerfile: Dockerfile
+    container_name: gerocuidado-usuario-db
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    volumes:
+      - './api-usuario/db/postgres:/var/lib/postgresql/data'
+      - './api-usuario/.docker/postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf'
+    environment:
+      - POSTGRES_DB=gerocuidado_usuario_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5001:5432'
+    networks:
+      - gerocuidado-apis-net
+
+  # API Saude
+  gerocuidado-saude-api:
+    build:
+      context: ./api-saude
+      dockerfile: Dockerfile.prod
+    container_name: gerocuidado-saude-api
+    volumes:
+      - './api-saude:/home/node/app'
+    entrypoint: /home/node/app/.docker/entrypoint.sh
+    environment:
+      - NODE_ENV=development
+    ports:
+      - '3003:3003'
+    depends_on:
+      - gerocuidado-saude-db
+    networks:
+      - gerocuidado-apis-net
+
+  gerocuidado-saude-db:
+    build:
+      context: ./api-saude/.docker/postgres
+      dockerfile: Dockerfile
+    container_name: gerocuidado-saude-db
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    volumes:
+      - './api-saude/db/postgres:/var/lib/postgresql/data'
+      - './api-saude/.docker/postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf'
+    environment:
+      - POSTGRES_DB=gerocuidado_saude_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5003:5432'
+    networks:
+      - gerocuidado-apis-net
+
+  # API Forum
+  gerocuidado-forum-api:
+    build:
+      context: ./api-forum
+      dockerfile: Dockerfile.prod
+    container_name: gerocuidado-forum-api
+    volumes:
+      - './api-forum:/home/node/app'
+    entrypoint: /home/node/app/.docker/entrypoint.sh
+    environment:
+      - NODE_ENV=development
+    ports:
+      - '3002:3002'
+    depends_on:
+      - gerocuidado-forum-db
+    networks:
+      - gerocuidado-apis-net
+
+  gerocuidado-forum-db:
+    build:
+      context: ./api-forum/.docker/postgres
+      dockerfile: Dockerfile
+    container_name: gerocuidado-forum-db
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    volumes:
+      - './api-forum/db/postgres:/var/lib/postgresql/data'
+      - './api-forum/.docker/postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf'
+    environment:
+      - POSTGRES_DB=gerocuidado_forum_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5002:5432'
+    networks:
+      - gerocuidado-apis-net
+
+  # Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: gerocuidado-nginx
+    volumes:
+      - './nginx/nginx.conf:/etc/nginx/nginx.conf:ro'  # Arquivo de configuração do Nginx
+    ports:
+      - '80:80'
+    depends_on:
+      - gerocuidado-usuario-api
+      - gerocuidado-saude-api
+      - gerocuidado-forum-api
+    networks:
+      - gerocuidado-apis-net

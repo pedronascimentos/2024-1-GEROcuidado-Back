@@ -1,0 +1,39 @@
+version: '3.7'
+services:
+  gerocuidado-forum-api-test:
+    image: gerocuidadodev/node:18.17.0-alpine-dev
+    container_name: gerocuidado-forum-api-test
+    volumes:
+      - '.:/home/node/app'
+    entrypoint: dockerize -wait tcp://gerocuidado-forum-db-test:5002 -timeout 40s ./.docker/entrypoint.test.sh
+    environment:
+      - NODE_ENV=test
+      - TEST=$TEST
+    user: root
+    ports:
+      - '3002:3002'
+    depends_on:
+      - gerocuidado-forum-db-test
+    networks:
+      - gerocuidado-forum-net-test
+
+  gerocuidado-forum-db-test:
+    build:
+      context: ./.docker/postgres
+      dockerfile: Dockerfile
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    container_name: gerocuidado-forum-db-test
+    volumes:
+      - './.docker/postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf'
+    environment:
+      - POSTGRES_DB=gerocuidado-forum-db-test
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5002:5002'
+    networks:
+      - gerocuidado-forum-net-test
+
+networks:
+  gerocuidado-forum-net-test:
+    driver: bridge
